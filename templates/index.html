@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gemini PDF QA App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: row;
+      background-color: #eaf4fc;
+    }
+
+    /* Chat Section (Left) */
+    .chat-container {
+      flex: 3;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      background-color: #e1f0ff;
+      border-right: 2px solid #d1d1d1;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding-right: 10px;
+      border: 1px solid #c0d6e4;
+      border-radius: 8px;
+      background-color: #ffffff;
+      padding: 10px;
+    }
+
+    .chat-bubble {
+      background-color: #f1f1f1;
+      border-radius: 10px;
+      padding: 10px 15px;
+      margin-bottom: 8px;
+      max-width: 80%;
+      box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .user {
+      background-color: #d0ebff;
+      align-self: flex-end;
+    }
+
+    .assistant {
+      background-color: #d4f7dc;
+      align-self: flex-start;
+    }
+
+    .question-box {
+      display: flex;
+      gap: 10px;
+    }
+
+    .question-box input {
+      flex: 1;
+      padding: 10px;
+      font-size: 1em;
+      border: 1px solid #aaa;
+      border-radius: 6px;
+    }
+
+    .question-box button {
+      padding: 10px 16px;
+      font-size: 1em;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .question-box button:hover {
+      background-color: #005fa3;
+    }
+
+    /* Upload Panel (Right) */
+    .upload-panel {
+      flex: 1.2;
+      padding: 20px;
+      background-color: #f3f3f3;
+      height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .upload-panel h2 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .upload-panel form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .upload-panel input[type="file"] {
+      padding: 6px;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+      background-color: #fff;
+    }
+
+    .upload-panel button {
+      padding: 10px;
+      font-size: 1em;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .upload-panel button:hover {
+      background-color: #218838;
+    }
+
+    #upload-status {
+      margin-top: 10px;
+      color: #28a745;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Chat UI (Left Panel) -->
+  <div class="chat-container">
+    <div class="chat-history" id="chat-history"></div>
+
+    <div class="question-box">
+      <input type="text" id="question" placeholder="Ask a question..." />
+      <button onclick="askQuestion()">Send</button>
+    </div>
+  </div>
+
+  <!-- Upload Panel (Right Panel) -->
+  <div class="upload-panel">
+    <h2>Upload PDF</h2>
+    <form id="upload-form">
+      <input type="file" id="pdf" accept=".pdf" required />
+      <button type="submit">Upload</button>
+    </form>
+    <p id="upload-status"></p>
+  </div>
+
+  <script>
+    const chatHistory = document.getElementById("chat-history");
+
+    document.getElementById("upload-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById("pdf");
+      const formData = new FormData();
+      formData.append("pdf", fileInput.files[0]);
+
+      const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      document.getElementById("upload-status").innerText = "File uploaded successfully!";
+    });
+
+    async function askQuestion() {
+      const q = document.getElementById("question").value.trim();
+      if (!q) return;
+
+      appendChat("user", q);
+      document.getElementById("question").value = "";
+
+      const res = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q })
+      });
+
+      const data = await res.json();
+      appendChat("assistant", data.response || data.error);
+    }
+
+    function appendChat(role, text) {
+      const bubble = document.createElement("div");
+      bubble.classList.add("chat-bubble", role);
+      bubble.innerText = text;
+      chatHistory.appendChild(bubble);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+  </script>
+</body>
+</html>
